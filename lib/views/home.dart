@@ -301,7 +301,10 @@ class _HomeState extends State<Home> {
                                   if (currList[index]
                                       .innerHtml
                                       .toString()
-                                      .endsWith('.mp4')) {
+                                      .endsWith('.mp4')||currList[index]
+                                      .innerHtml
+                                      .toString()
+                                      .endsWith('.mkv')) {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -403,6 +406,26 @@ class _HomeState extends State<Home> {
                                                           color: kShadow),
                                                       Text(
                                                         'MP4',
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .bodyText1!
+                                                            .copyWith(
+                                                              color: kMatte,
+                                                            ),
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ],
+                                                  ),if (currList[index]
+                                                    .innerHtml
+                                                    .toString()
+                                                    .endsWith('.mkv'))
+                                                  Row(
+                                                    children: [
+                                                      Icon(Icons.smart_display,
+                                                          color: kShadow),
+                                                      Text(
+                                                        'MKV',
                                                         style: Theme.of(context)
                                                             .textTheme
                                                             .bodyText1!

@@ -1,9 +1,18 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter/material.dart';
 import 'package:chewie/chewie.dart';
 import 'package:universal_html/html.dart' as uh;
 import 'dart:async';
+
+class EscIntent extends Intent {
+  const EscIntent();
+}
+
+class SpaceIntent extends Intent {
+  const SpaceIntent();
+}
 
 class ChewiePlayer extends StatefulWidget {
   final String url, title;
@@ -72,14 +81,15 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
             });
           })
         });
-    setState(() {});
+    setState(() {
+      goFullScreen();
+    });
   }
 
   @override
   void initState() {
     super.initState();
     videoIntialize();
-    goFullScreen();
   }
 
   @override
@@ -92,40 +102,62 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: show || hover
-          ? AppBar(
-              title: Text(widget.title),
-              elevation: 0,
-            )
-          : null,
-      body: Listener(
-        onPointerHover: (e) {
-          setState(() {
-            hover = true;
-          });
-          Timer(
-              Duration(seconds: 3),
-              () => setState(() {
-                    hover = false;
-                  }));
+    return Shortcuts(
+      shortcuts: {
+        LogicalKeySet(LogicalKeyboardKey.escape): const EscIntent(),
+        LogicalKeySet(LogicalKeyboardKey.space): const SpaceIntent(),
+      },
+      child: Actions(
+        actions: {
+          EscIntent: CallbackAction<EscIntent>(
+            onInvoke: (EscIntent intent) async {
+              fullscreen = !fullscreen;
+              print('yes');
+            },
+          ),
+          SpaceIntent: CallbackAction<SpaceIntent>(
+            onInvoke: (SpaceIntent intent) async {
+              print('yes  s');
+              _chewieController!.togglePause();
+            },
+          ),
         },
-        child: Container(
-          child: _chewieController != null &&
-                  videoPlayerController.value.isInitialized
-              ? Chewie(
-                  controller: _chewieController!,
+        child: Scaffold(
+          appBar: show || hover
+              ? AppBar(
+                  title: Text(widget.title),
+                  elevation: 0,
                 )
-              : Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 20),
-                      Text('Loading'),
-                    ],
-                  ),
-                ),
+              : null,
+          body: Listener(
+            onPointerHover: (e) {
+              setState(() {
+                hover = true;
+              });
+              Timer(
+                  Duration(seconds: 3),
+                  () => setState(() {
+                        hover = false;
+                      }));
+            },
+            child: Container(
+              child: _chewieController != null &&
+                      videoPlayerController.value.isInitialized
+                  ? Chewie(
+                      controller: _chewieController!,
+                    )
+                  : Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 20),
+                          Text('Loading'),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
         ),
       ),
     );
