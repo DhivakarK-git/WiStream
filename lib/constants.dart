@@ -4,6 +4,7 @@ const String url = '';
 
 const Color kMatte = Color(0xFF252525); //can change Black color
 
+const Color kBlack = Color(0xFF121212);
 const Color kShadow = Color(0xFF3D3D3D);
 
 const Color kFrost = Color(0xFFEDEDED);

@@ -6,12 +6,14 @@ import 'package:chewie/chewie.dart';
 import 'package:universal_html/html.dart' as uh;
 import 'dart:async';
 
-class EscIntent extends Intent {
-  const EscIntent();
-}
+import 'package:wistream/constants.dart';
 
 class SpaceIntent extends Intent {
   const SpaceIntent();
+}
+
+class MuteIntent extends Intent {
+  const MuteIntent();
 }
 
 class ChewiePlayer extends StatefulWidget {
@@ -27,14 +29,15 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
   late VideoPlayerController videoPlayerController;
   ChewieController? _chewieController;
 
-  bool show = true, hover = false, fullscreen = false;
+  ValueNotifier<bool> hover = ValueNotifier<bool>(false);
+
+  int oldVolume = 0;
 
   void goFullScreen() async {
-    if (fullscreen)
+    if (uh.document.fullscreenElement != null)
       uh.document.exitFullscreen();
     else
       uh.document.documentElement!.requestFullscreen();
-    fullscreen = !fullscreen;
   }
 
   Future<void> videoIntialize() async {
@@ -54,8 +57,9 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
                     goFullScreen();
                     Navigator.of(context).pop();
                   },
-                  iconData:
-                      fullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                  iconData: uh.document.fullscreenElement != null
+                      ? Icons.fullscreen_exit
+                      : Icons.fullscreen,
                   title: 'Fullscreen',
                 ),
               ];
@@ -72,18 +76,8 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
         );
       },
     );
-
-    videoPlayerController.initialize().then((value) => {
-          videoPlayerController.addListener(() {
-            //custom Listner
-            setState(() {
-              show = !_chewieController!.isPlaying;
-            });
-          })
-        });
-    setState(() {
-      goFullScreen();
-    });
+    goFullScreen();
+    setState(() {});
   }
 
   @override
@@ -94,68 +88,96 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
 
   @override
   void dispose() {
+    _chewieController!.dispose();
     videoPlayerController.dispose();
-    _chewieController?.dispose();
-    if (fullscreen) uh.document.exitFullscreen();
+
+    if (uh.document.fullscreenElement != null) uh.document.exitFullscreen();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Shortcuts(
+    return FocusableActionDetector(
+      autofocus: true,
       shortcuts: {
-        LogicalKeySet(LogicalKeyboardKey.escape): const EscIntent(),
         LogicalKeySet(LogicalKeyboardKey.space): const SpaceIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyM): const MuteIntent(),
       },
-      child: Actions(
-        actions: {
-          EscIntent: CallbackAction<EscIntent>(
-            onInvoke: (EscIntent intent) async {
-              fullscreen = !fullscreen;
-              print('yes');
-            },
+      actions: {
+        SpaceIntent: CallbackAction<SpaceIntent>(
+          onInvoke: (SpaceIntent intent) async {
+            _chewieController!.togglePause();
+          },
+        ),
+        MuteIntent: CallbackAction<MuteIntent>(
+          onInvoke: (MuteIntent intent) async {
+            if (oldVolume == 1)
+              _chewieController!.setVolume(100);
+            else
+              _chewieController!.setVolume(0);
+            oldVolume = oldVolume == 1 ? 0 : 1;
+          },
+        ),
+      },
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          primaryColor: kBlack,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+          scaffoldBackgroundColor: kBlack,
+          cardColor: kMatte,
+          snackBarTheme: SnackBarThemeData(
+            backgroundColor: kMatte,
+            behavior: SnackBarBehavior.floating,
           ),
-          SpaceIntent: CallbackAction<SpaceIntent>(
-            onInvoke: (SpaceIntent intent) async {
-              print('yes  s');
-              _chewieController!.togglePause();
-            },
+          appBarTheme: AppBarTheme(
+            color: kBlack,
           ),
-        },
+          primaryIconTheme: IconThemeData(color: kGlacier),
+        ),
         child: Scaffold(
-          appBar: show || hover
-              ? AppBar(
-                  title: Text(widget.title),
-                  elevation: 0,
-                )
-              : null,
           body: Listener(
             onPointerHover: (e) {
-              setState(() {
-                hover = true;
-              });
-              Timer(
-                  Duration(seconds: 3),
-                  () => setState(() {
-                        hover = false;
-                      }));
+              hover.value = true;
+              Timer(Duration(seconds: 3), () => hover.value = false);
             },
-            child: Container(
-              child: _chewieController != null &&
-                      videoPlayerController.value.isInitialized
-                  ? Chewie(
-                      controller: _chewieController!,
-                    )
-                  : Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 20),
-                          Text('Loading'),
+            child: Stack(
+              children: [
+                Container(
+                  child: _chewieController != null &&
+                          videoPlayerController.value.isInitialized
+                      ? Chewie(
+                          controller: _chewieController!,
+                        )
+                      : Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 20),
+                              Text('Loading'),
+                            ],
+                          ),
+                        ),
+                ),
+                ValueListenableBuilder<bool>(
+                    valueListenable: hover,
+                    builder: (context, hoverv, _) {
+                      return Column(
+                        children: [
+                          if (hoverv)
+                            Container(
+                              width: MediaQuery.of(context).size.width,
+                              height: 56,
+                              child: AppBar(
+                                title: Text(widget.title),
+                                elevation: 0,
+                                backgroundColor: kMatte.withAlpha(100),
+                              ),
+                            ),
                         ],
-                      ),
-                    ),
+                      );
+                    }),
+              ],
             ),
           ),
         ),
