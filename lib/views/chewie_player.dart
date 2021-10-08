@@ -29,7 +29,9 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
   late VideoPlayerController videoPlayerController;
   ChewieController? _chewieController;
 
-  ValueNotifier<bool> hover = ValueNotifier<bool>(false);
+  ValueNotifier<bool> hover = ValueNotifier<bool>(true);
+
+  late Timer _timer;
 
   int oldVolume = 0;
 
@@ -41,6 +43,7 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
   }
 
   Future<void> videoIntialize() async {
+    _timer = Timer(Duration(seconds: 10), () => hover.value = false);
     videoPlayerController = VideoPlayerController.network(widget.url);
     await videoPlayerController.initialize();
     _chewieController = ChewieController(
@@ -88,10 +91,9 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
 
   @override
   void dispose() {
+    if (uh.document.fullscreenElement != null) uh.document.exitFullscreen();
     _chewieController!.dispose();
     videoPlayerController.dispose();
-
-    if (uh.document.fullscreenElement != null) uh.document.exitFullscreen();
     super.dispose();
   }
 
@@ -137,8 +139,12 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
         child: Scaffold(
           body: Listener(
             onPointerHover: (e) {
-              hover.value = true;
-              Timer(Duration(seconds: 3), () => hover.value = false);
+              if (!hover.value)
+                hover.value = true;
+              else {
+                if (_timer.isActive) _timer.cancel();
+                _timer = Timer(Duration(seconds: 3), () => hover.value = false);
+              }
             },
             child: Stack(
               children: [
