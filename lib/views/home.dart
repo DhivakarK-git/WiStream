@@ -31,15 +31,20 @@ class _HomeState extends State<Home> {
         var document = parse(response.body);
         currList = document.getElementsByTagName('a');
         setState(() {
-          if (currList.last.innerHtml.toString() == 'ecstatic')
+          currURL = response.request!.url.toString();
+          if (currURL.isNotEmpty && currURL.endsWith('/')) {
+            currURL = currURL.substring(0, currURL.length - 1);
+          }
+          if (currList.last.innerHtml.toString() == 'ecstatic' || currList.last.innerHtml.toString() == 'http-server')
             currList.removeLast();
+          if (currURL != source.text &&
+              currList.first.innerHtml.toString() != '../') {
+            var something = currList.first.clone(true);
+            something.innerHtml = '../';
+            something.attributes['href'] = '../';
+            currList.insert(0, something);
+          }
         });
-        // String nextUrl =
-        //     document.getElementsByTagName('a').first.innerHtml.toString();
-        // http.Response resp =
-        //     await http.get(Uri.parse('http://192.168.2.7:8080/' + nextUrl));
-        // var docu = parse(resp.body);
-        // print(docu.getElementsByTagName('a').elementAt(2).innerHtml);
       } else {
         print(response.reasonPhrase);
       }
@@ -125,7 +130,6 @@ class _HomeState extends State<Home> {
                                           source.text = source.text.substring(
                                               0, source.text.length - 1);
                                           currURL = source.text;
-                                          print(currURL);
                                         }
                                         fetchVideos();
                                       },
@@ -166,7 +170,9 @@ class _HomeState extends State<Home> {
             ),
             Text(
               "WiStream",
-              style: Theme.of(context).textTheme.headline4,
+              style: MediaQuery.of(context).size.width < 600
+                  ? Theme.of(context).textTheme.headline5
+                  : Theme.of(context).textTheme.headline4,
             ),
           ],
         ),
@@ -294,17 +300,22 @@ class _HomeState extends State<Home> {
                                       .innerHtml
                                       .toString()
                                       .endsWith('/')) {
-                                    currURL = source.text +
+                                    var tempURL =
                                         currList[index].attributes['href'];
+                                    if (tempURL.toString().startsWith('/'))
+                                      currURL = source.text + tempURL;
+                                    else
+                                      currURL = source.text + '/' + tempURL;
                                     fetchVideos();
                                   }
                                   if (currList[index]
-                                      .innerHtml
-                                      .toString()
-                                      .endsWith('.mp4')||currList[index]
-                                      .innerHtml
-                                      .toString()
-                                      .endsWith('.mkv')) {
+                                          .innerHtml
+                                          .toString()
+                                          .endsWith('.mp4') ||
+                                      currList[index]
+                                          .innerHtml
+                                          .toString()
+                                          .endsWith('.mkv')) {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -416,7 +427,8 @@ class _HomeState extends State<Home> {
                                                             .ellipsis,
                                                       ),
                                                     ],
-                                                  ),if (currList[index]
+                                                  ),
+                                                if (currList[index]
                                                     .innerHtml
                                                     .toString()
                                                     .endsWith('.mkv'))

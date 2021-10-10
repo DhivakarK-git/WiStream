@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
@@ -52,22 +54,29 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
       allowFullScreen: kIsWeb ? false : true,
       fullScreenByDefault: kIsWeb ? false : true,
       looping: true,
-      additionalOptions: (kIsWeb)
-          ? (context) {
-              return <OptionItem>[
-                OptionItem(
-                  onTap: () {
-                    goFullScreen();
-                    Navigator.of(context).pop();
-                  },
-                  iconData: uh.document.fullscreenElement != null
-                      ? Icons.fullscreen_exit
-                      : Icons.fullscreen,
-                  title: 'Fullscreen',
-                ),
-              ];
-            }
-          : null,
+      additionalOptions: (context) {
+        return <OptionItem>[
+          if (kIsWeb)
+            OptionItem(
+              onTap: () {
+                goFullScreen();
+                Navigator.of(context).pop();
+              },
+              iconData: uh.document.fullscreenElement != null
+                  ? Icons.fullscreen_exit
+                  : Icons.fullscreen,
+              title: 'Fullscreen',
+            ),
+          if (Platform.isAndroid || Platform.isIOS)
+            OptionItem(
+              onTap: () {
+                Navigator.of(context).pop();
+              },
+              iconData: Icons.arrow_back,
+              title: 'Exit',
+            ),
+        ];
+      },
       errorBuilder: (context, errorMessage) {
         return Center(
           child: Padding(
@@ -79,7 +88,7 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
         );
       },
     );
-    goFullScreen();
+    if (kIsWeb) goFullScreen();
     setState(() {});
   }
 
@@ -146,45 +155,63 @@ class _ChewiePlayerState extends State<ChewiePlayer> {
                 _timer = Timer(Duration(seconds: 3), () => hover.value = false);
               }
             },
-            child: Stack(
-              children: [
-                Container(
-                  child: _chewieController != null &&
-                          videoPlayerController.value.isInitialized
-                      ? Chewie(
-                          controller: _chewieController!,
-                        )
-                      : Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              CircularProgressIndicator(),
-                              SizedBox(height: 20),
-                              Text('Loading'),
-                            ],
-                          ),
-                        ),
-                ),
-                ValueListenableBuilder<bool>(
-                    valueListenable: hover,
-                    builder: (context, hoverv, _) {
-                      return Column(
-                        children: [
-                          if (hoverv)
-                            Container(
-                              width: MediaQuery.of(context).size.width,
-                              height: 56,
-                              child: AppBar(
-                                title: Text(widget.title),
-                                elevation: 0,
-                                backgroundColor: kMatte.withAlpha(100),
+            child: kIsWeb
+                ? Stack(
+                    children: [
+                      Container(
+                        child: _chewieController != null &&
+                                videoPlayerController.value.isInitialized
+                            ? Chewie(
+                                controller: _chewieController!,
+                              )
+                            : Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    CircularProgressIndicator(),
+                                    SizedBox(height: 20),
+                                    Text('Loading'),
+                                  ],
+                                ),
                               ),
+                      ),
+                      ValueListenableBuilder<bool>(
+                          valueListenable: hover,
+                          builder: (context, hoverv, _) {
+                            return Column(
+                              children: [
+                                if (hoverv)
+                                  Container(
+                                    width: MediaQuery.of(context).size.width,
+                                    height: 56,
+                                    child: AppBar(
+                                      title: Text(widget.title),
+                                      elevation: 0,
+                                      backgroundColor: kMatte.withAlpha(100),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          }),
+                    ],
+                  )
+                : Container(
+                    child: _chewieController != null &&
+                            videoPlayerController.value.isInitialized
+                        ? Chewie(
+                            controller: _chewieController!,
+                          )
+                        : Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                CircularProgressIndicator(),
+                                SizedBox(height: 20),
+                                Text('Loading'),
+                              ],
                             ),
-                        ],
-                      );
-                    }),
-              ],
-            ),
+                          ),
+                  ),
           ),
         ),
       ),
